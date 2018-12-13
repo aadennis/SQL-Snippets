@@ -1,15 +1,15 @@
-ss. sum execution count 
+SELECT ss.sum_execution_count 
 ,t.TEXT 
-, ss. sum total_elapsed_time 
-,ss.sum total worker tire 
-,ss.sum total _ logical _ reads 
-,ss.sum total_logical_writes 
-FROM  (SELECT s. plan _ handle 
-SUM(s. execution_count) sum execution_count 
-elapsed_tire) sum total elapsed time 
-SLIM(s. total worker _ time) sum 
-SUM(s.tota1 logical _ reads) sum total logical reads 
-SUM(s.tota1 logical_writes) sum_total_logical_writes 
+,ss.sum_total_elapsed_time 
+,ss.sum_total_worker_time 
+,ss.sum_total_logical_reads 
+,ss.sum_total_logical_writes 
+FROM (SELECT s.plan_handle 
+,SUM(s.execution_count) sum_execution_count 
+SUM(s.elapsed_time) sum_total_elapsed_time 
+SUM(s.total_worker_time) sum_total_worker_time 
+SUM(s.tota1_logical_reads) sum total logical reads 
+SUM(s.tota1_logical_writes) sum_total_logical_writes 
 FROM sys. dm exec_query_stats s 
 CROUP BY s.plan_handle 
 ) AS ss 
