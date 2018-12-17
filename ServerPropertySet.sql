@@ -44,18 +44,17 @@ union all	select 'SqlSortOrder', convert(nvarchar,SERVERPROPERTY('SqlSortOrder')
 union all	select 'SqlSortOrderName', convert(nvarchar,SERVERPROPERTY('SqlSortOrderName')), null
 ;
 
-exec sys.xp_readerrorlog 0,1,N'detected',N'socket';
-
 --https://docs.microsoft.com/en-us/sql/relational-databases/system-dynamic-management-views/sys-dm-os-process-memory-transact-sql?view=sql-server-2017
 with [os_process_memory] as (
-SELECT convert(bigint,physical_memory_in_use_kb/1024) AS [SQL Server Memory Usage (MB)],
-       convert(bigint,large_page_allocations_kb/1024) AS [SQL Server Large Pages Allocation (MB)], 
-	   convert(bigint,locked_page_allocations_kb/1024) AS [SQL Server Locked Pages Allocation (MB)],
-	   convert(bigint,page_fault_count) AS page_fault_count, 
-	   convert(bigint,memory_utilization_percentage) as memory_utilization_percentage, 
-	   convert(bigint,available_commit_limit_kb) as available_commit_limit_kb, 
-	   convert(bigint,process_physical_memory_low ) AS process_physical_memory_low, 
-	   convert(bigint,process_virtual_memory_low) AS process_virtual_memory_low
+SELECT 
+	 convert(bigint,physical_memory_in_use_kb/1024) AS [SQL Server Memory Usage (MB)]
+     ,convert(bigint,large_page_allocations_kb/1024) AS [SQL Server Large Pages Allocation (MB)]
+	 ,convert(bigint,locked_page_allocations_kb/1024) AS [SQL Server Locked Pages Allocation (MB)]
+	 ,convert(bigint,page_fault_count) AS page_fault_count
+	 ,convert(bigint,memory_utilization_percentage) as memory_utilization_percentage
+	 ,convert(bigint,available_commit_limit_kb) as available_commit_limit_kb
+	 ,convert(bigint,process_physical_memory_low ) AS process_physical_memory_low
+	 ,convert(bigint,process_virtual_memory_low) AS process_virtual_memory_low
 FROM sys.dm_os_process_memory WITH (NOLOCK) 
 ) insert into @properties(propertyName,propertyValue,comments) 
 	select [name], [value], 'memory category' from [os_process_memory]
@@ -67,6 +66,23 @@ FROM sys.dm_os_process_memory WITH (NOLOCK)
 						[process_virtual_memory_low])
 		) as up;
 
+--https://docs.microsoft.com/en-us/sql/relational-databases/system-dynamic-management-views/sys-dm-os-windows-info-transact-sql?view=sql-server-2017
+with [windows_sku] as (
+SELECT 
+	 convert(nvarchar,windows_release) as windows_release
+	,convert(nvarchar,windows_service_pack_level) as windows_service_pack_level
+	,convert(nvarchar,windows_sku) as windows_sku
+	,convert(nvarchar,os_language_version) as os_language_version
+FROM sys.dm_os_windows_info WITH (NOLOCK)
+)  insert into @properties(propertyName,propertyValue,comments) 
+	select [name], [value], '[windows_sku]' from [windows_sku]
+	unpivot 
+		(
+			[value]
+			for [name] in ([windows_release],[windows_service_pack_level],
+						[windows_sku],[os_language_version])
+		) as up;
+
+insert into @properties(propertyName,propertyValue,comments) exec sys.xp_readerrorlog 0,1,N'detected',N'socket';
+
 select * from @properties;
-
-
