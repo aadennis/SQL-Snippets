@@ -44,7 +44,29 @@ union all	select 'SqlSortOrder', convert(nvarchar,SERVERPROPERTY('SqlSortOrder')
 union all	select 'SqlSortOrderName', convert(nvarchar,SERVERPROPERTY('SqlSortOrderName')), null
 ;
 
+exec sys.xp_readerrorlog 0,1,N'detected',N'socket';
+
+--https://docs.microsoft.com/en-us/sql/relational-databases/system-dynamic-management-views/sys-dm-os-process-memory-transact-sql?view=sql-server-2017
+with [os_process_memory] as (
+SELECT convert(bigint,physical_memory_in_use_kb/1024) AS [SQL Server Memory Usage (MB)],
+       convert(bigint,large_page_allocations_kb/1024) AS [SQL Server Large Pages Allocation (MB)], 
+	   convert(bigint,locked_page_allocations_kb/1024) AS [SQL Server Locked Pages Allocation (MB)],
+	   convert(bigint,page_fault_count) AS page_fault_count, 
+	   convert(bigint,memory_utilization_percentage) as memory_utilization_percentage, 
+	   convert(bigint,available_commit_limit_kb) as available_commit_limit_kb, 
+	   convert(bigint,process_physical_memory_low ) AS process_physical_memory_low, 
+	   convert(bigint,process_virtual_memory_low) AS process_virtual_memory_low
+FROM sys.dm_os_process_memory WITH (NOLOCK) 
+) insert into @properties(propertyName,propertyValue,comments) 
+	select [name], [value], 'memory category' from [os_process_memory]
+		unpivot 
+		(
+			[value]
+			for [name] in ([SQL Server Memory Usage (MB)],[SQL Server Locked Pages Allocation (MB)],[SQL Server Large Pages Allocation (MB)],
+						[page_fault_count],[memory_utilization_percentage],[available_commit_limit_kb],[process_physical_memory_low],
+						[process_virtual_memory_low])
+		) as up;
+
 select * from @properties;
 
-exec sys.xp_readerrorlog 0,1,N'detected',N'socket';
 
